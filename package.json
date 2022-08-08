@@ -1,0 +1,47 @@
+{
+  "name": "build-a-supergraph-subgraph-b",
+  "version": "1.0.0",
+  "description": "subgraph-b for the build-a-supergraph workshop: https://github.com/apollosolutions/build-a-supergraph",
+  "main": "/dist/index.js",
+  "homepage": "https://github.com/apollosolutions/build-a-supergraph-subgraph-b#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apollosolutions/build-a-supergraph-subgraph-b.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/apollosolutions/build-a-supergraph-subgraph-b/issues"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -b --pretty --verbose",
+    "start": "node ./dist/index.js",
+    "start-otel": "node --require \"./dist/tracing.js\" ./dist/index.js",
+    "watch": "concurrently npm:watch-*",
+    "watch-ts": "tsc -w",
+    "watch-node": "nodemon ./dist/index.js"
+  },
+  "dependencies": {
+    "@apollo/subgraph": "^2.0.5",
+    "@opentelemetry/api": "1.0",
+    "@opentelemetry/core": "1.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.31.0",
+    "@opentelemetry/instrumentation": "^0.27.0",
+    "@opentelemetry/instrumentation-express": "^0.28.0",
+    "@opentelemetry/instrumentation-graphql": "^0.27.4",
+    "@opentelemetry/instrumentation-http": "^0.27.0",
+    "@opentelemetry/resources": "1.0",
+    "@opentelemetry/sdk-node": "^0.31.0",
+    "@opentelemetry/sdk-trace-base": "1.0",
+    "@opentelemetry/sdk-trace-node": "1.0",
+    "apollo-server": "^3.10.0",
+    "env-var": "^7.1.1",
+    "graphql": "^16.5.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.3.0",
+    "nodemon": "^2.0.19",
+    "typescript": "^4.7.4"
+  }
+}
