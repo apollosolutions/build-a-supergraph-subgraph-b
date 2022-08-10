@@ -25,7 +25,7 @@ registerInstrumentations({
 const provider = new NodeTracerProvider({
   resource: Resource.default().merge(
     new Resource({
-      'service.name': 'subgraph-a',
+      'service.name': 'subgraph-b',
     })
   ),
 });

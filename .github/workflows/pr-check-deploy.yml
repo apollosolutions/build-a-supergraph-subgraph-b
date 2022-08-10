@@ -1,0 +1,22 @@
+name: pr-check-deploy
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/**'
+
+jobs:
+  # See GH Action: https://github.com/helm/chart-testing-action
+  helm-lint-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: azure/setup-helm@18bc76811624f360dbd7f18c2d4ecb32c7b87bab # pin@v1
+        with:
+          version: v3.9.2
+
+      - name: Helm lint
+        id: list-changed
+        run: helm lint ./deploy/subgraph-b

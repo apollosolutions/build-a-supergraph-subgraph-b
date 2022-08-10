@@ -1,0 +1,111 @@
+name: deploy-gke
+
+# Started from GH Docs
+# https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
+
+# REQUIRED REPO SECRETS
+#   - GCP_CREDENTIALS
+
+# Run on manual trigger for now
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'SHA of the image to deploy'
+        type: string
+        required: true
+      dry-run:
+        type: boolean
+        description: 'Run a dry run with helm'
+        required: false
+        default: false
+      debug:
+        type: boolean
+        description: 'Run helm in debug mode'
+        required: false
+        default: false
+
+env:
+  IMAGE: ${{ github.repository }}
+  PROJECT_ID: subgraph-b # Add your app name here
+  GKE_CLUSTER: apollo-supergraph-k8s-prod # Add your cluster name here.
+  GKE_ZONE: us-east1 # Add your cluster zone here.
+  REGISTRY: ghcr.io
+
+jobs:
+  setup-build-publish-deploy:
+    name: Setup, Build, Publish, and Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v0
+
+      - name: 'Use gcloud CLI'
+        run: gcloud info
+
+      # Configure Docker to use the gcloud command-line tool as a credential
+      # helper for authentication
+      - run: |-
+          gcloud --quiet auth configure-docker
+
+      # Get the GKE credentials so we can deploy to the cluster
+      - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_ZONE }}
+
+      # Install helm
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+      # Deploy the Docker image to the GKE cluster with dry run
+      - name: Helm dry-run
+        if: ${{ inputs.dry-run }}
+        run: |
+          helm upgrade $PROJECT_ID \
+          --set image.repository=$REGISTRY/$IMAGE \
+          --set image.tag=${{ inputs.version }} \
+          --dry-run \
+          --atomic \
+          --install \
+          --timeout 10m0s \
+          ./deploy/subgraph-b \
+          --values ./deploy/subgraph-b/values.yaml
+
+      # Deploy the Docker image to the GKE cluster for real with debug
+      - name: Deploy
+        if: ${{ !inputs.dry-run && inputs.debug }}
+        run: |
+          helm upgrade $PROJECT_ID \
+          --set image.repository=$REGISTRY/$IMAGE \
+          --set image.tag=${{ inputs.version }} \
+          --atomic \
+          --install \
+          --timeout 10m0s \
+          --debug \
+          ./deploy/subgraph-b \
+          --values ./deploy/subgraph-b/values.yaml
+
+      # Deploy the Docker image to the GKE cluster for real
+      - name: Deploy
+        if: ${{ !inputs.dry-run }}
+        run: |
+          helm upgrade $PROJECT_ID \
+          --set image.repository=$REGISTRY/$IMAGE \
+          --set image.tag=${{ inputs.version }} \
+          --atomic \
+          --install \
+          --timeout 10m0s \
+          ./deploy/subgraph-b \
+          --values ./deploy/subgraph-b/values.yaml
