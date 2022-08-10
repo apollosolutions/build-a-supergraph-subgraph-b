@@ -1,47 +1,50 @@
- extend schema
-    @link(url: "https://specs.apollo.dev/federation/v2.0",
-       import: ["@key", "@shareable", "@tag", "@inaccessible"])
-
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0",
+        import: ["@key"])
+        
 type Query {
-  allProducts: [ProductItf]
-  product(id: ID!): ProductItf
+  "The three latest reviews submitted for FlyBy's locations"
+  latestReviews: [Review!]!
 }
 
-interface ProductItf implements SkuItf {
+type Mutation {
+  submitReview(locationReview: LocationReviewInput): SubmitReviewResponse
+}
+
+type Location @key(fields: "id") {
   id: ID!
-  sku: String
-  package: String
-  variation: ProductVariation
-  dimensions: ProductDimension
-  createdBy: User
-  hidden: String @inaccessible
+  "The calculated overall rating based on all reviews"
+  overallRating: Float
+  "All submitted reviews about this location"
+  reviewsForLocation: [Review]!
 }
 
-interface SkuItf {
-  sku: String
-}
-
-type Product implements ProductItf & SkuItf @key(fields: "id") @key(fields: "sku package") @key(fields: "sku variation { id }"){
-  id: ID! @tag(name: "hi-from-products")
-  sku: String
-  package: String
-  variation: ProductVariation
-  dimensions: ProductDimension
-  createdBy: User
-  hidden: String
-}
-enum ShippingClass {
-  STANDARD
-  EXPRESS
-}
-type ProductVariation {
+type Review {
   id: ID!
+  "Written text"
+  comment: String
+  "A number from 1 - 5 with 1 being lowest and 5 being highest"
+  rating: Int
+  "The location the review is about"
+  location: Location
 }
-type ProductDimension @shareable {
-  size: String
-  weight: Float
+
+input LocationReviewInput {
+  "Written text"
+  comment: String!
+  "A number from 1 - 5 with 1 being lowest and 5 being highest"
+  rating: Int!
+  "Location Id"
+  locationId: String!
 }
-type User @key(fields: "email") {
-  email: ID!
-  totalProductsCreated: Int @shareable
+
+type SubmitReviewResponse {
+  "Similar to HTTP status code, represents the status of the mutation"
+  code: Int!
+  "Indicates whether the mutation was successful"
+  success: Boolean!
+  "Human-readable message for the UI"
+  message: String!
+  "Newly created review"
+  locationReview: Review
 }

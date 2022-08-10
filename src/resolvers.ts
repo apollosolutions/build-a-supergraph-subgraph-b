@@ -1,57 +1,131 @@
-const products = [
+interface Review {
+  id: string;
+  locationId: string;
+  rating: number;
+  comment: string;
+}
+
+let reviews: Review[] = [
   {
-    id: 'apollo-federation',
-    sku: 'federation',
-    package: '@apollo/federation',
-    variation: 'OSS',
+    id: 'rev-1',
+    locationId: 'loc-1',
+    rating: 5,
+    comment:
+      'I would also like to say thank you to all your staff! I would gladly pay over 600 dollars for planet. Planet was worth a fortune to my company. After using planet my business skyrocketed!',
   },
-  { id: 'apollo-studio', sku: 'studio', package: '', variation: 'platform' },
+  {
+    id: 'rev-2',
+    locationId: 'loc-1',
+    rating: 5,
+    comment:
+      "It's really wonderful. We have no regrets! Keep up the excellent work.",
+  },
+  {
+    id: 'rev-3',
+    locationId: 'loc-1',
+    rating: 5,
+    comment:
+      "This is simply unbelievable! It's the perfect solution for our business. Really good. I don't always clop, but when I do, it's because of planet",
+  },
+  {
+    id: 'rev-4',
+    locationId: 'loc-1',
+    rating: 2,
+    comment:
+      "Planet is exactly what our business has been lacking. It's incredible. If you want real marketing that works and effective implementation - planet's got you covered.",
+  },
+  {
+    id: 'rev-5',
+    locationId: 'loc-2',
+    rating: 4,
+    comment:
+      'Thanks planet! I was amazed at the quality of planet. Planet did exactly what you said it does.',
+  },
+  {
+    id: 'rev-6',
+    locationId: 'loc-2',
+    rating: 3,
+    comment:
+      'I would also like to say thank you to all your staff. I would gladly pay over 600 dollars for planet. Planet was worth a fortune to my company. After using planet my business skyrocketed!',
+  },
+  {
+    id: 'rev-7',
+    locationId: 'loc-2',
+    rating: 2,
+    comment:
+      "It's really wonderful. We have no regrets! Keep up the excellent work.",
+  },
+  {
+    id: 'rev-8',
+    locationId: 'loc-2',
+    rating: 5,
+    comment:
+      "This is simply unbelievable! It's the perfect solution for our business. Really good. I don't always clop, but when I do, it's because of planet",
+  },
+  {
+    id: 'rev-9',
+    locationId: 'loc-3',
+    rating: 5,
+    comment:
+      "Planet is exactly what our business has been lacking. It's incredible. If you want real marketing that works and effective implementation - planet's got you covered.",
+  },
+  {
+    id: 'rev-10',
+    locationId: 'loc-4',
+    rating: 5,
+    comment:
+      'Thanks planet! I was amazed at the quality of planet. Planet did exactly what you said it does.',
+  },
 ];
 
 export const resolvers = {
   Query: {
-    allProducts: () => {
-      return products;
-    },
-    product: (_: any, args: { id: string }) => {
-      return products.find((p) => p.id == args.id);
+    latestReviews: () => {
+      return reviews.slice(Math.max(reviews.length - 3, 0));
     },
   },
-  ProductItf: {
-    __resolveType() {
-      return 'Product';
+  Review: {
+    location: ({ locationId }: { locationId: string }) => {
+      return { id: locationId };
     },
   },
-  Product: {
-    variation: (reference: any) => {
-      if (reference.variation) {
-        return { id: reference.variation };
+  Location: {
+    __resolveReference: (location: any) => {
+      return location;
+    },
+    overallRating: ({ id }: { id?: string }) => {
+      const allRatings = reviews
+        .filter((r) => r.locationId === id)
+        .map((r) => r.rating);
+      const sum = allRatings.reduce((a, b) => a + b, 0);
+      const average = sum / allRatings.length || 0;
+      return average;
+    },
+    reviewsForLocation: ({ id }: { id?: string }) => {
+      return reviews.filter((r) => r.locationId === id);
+    },
+  },
+  Mutation: {
+    submitReview: (
+      _: any,
+      {
+        locationReview,
+      }: {
+        locationReview: {
+          locationId: string;
+          rating: number;
+          comment: string;
+        };
       }
-
-      const id = products.find((p) => p.id == reference.id)?.variation;
-
-      return !id ? null : { id };
-    },
-    dimensions: () => {
-      return { size: '1', weight: 1 };
-    },
-    createdBy: () => {
-      return { email: 'support@apollographql.com', totalProductsCreated: 1337 };
-    },
-    __resolveReference: (reference: {
-      id?: string;
-      sku?: string;
-      package?: string;
-    }) => {
-      if (reference.id) {
-        return products.find((p) => p.id == reference.id);
-      } else if (reference.sku && reference.package) {
-        return products.find(
-          (p) => p.sku == reference.sku && p.package == reference.package
-        );
-      } else {
-        return { id: 'rover', package: '@apollo/rover', ...reference };
-      }
+    ) => {
+      const newReview = { id: `rev-${reviews.length + 1}`, ...locationReview };
+      reviews = [...reviews, newReview];
+      return {
+        code: 200,
+        success: true,
+        message: 'success',
+        locationReview: newReview,
+      };
     },
   },
 };
