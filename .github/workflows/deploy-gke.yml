@@ -11,17 +11,26 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'SHA of the image to deploy'
+        description: "SHA of the image to deploy"
         type: string
         required: true
+        default: main
+      cluster:
+        description: "Target K8s cluster"
+        type: choice
+        required: true
+        default: apollo-supergraph-k8s-dev
+        options:
+          - apollo-supergraph-k8s-dev
+          - apollo-supergraph-k8s-prod
       dry-run:
         type: boolean
-        description: 'Run a dry run with helm'
+        description: "Run a dry run with helm"
         required: false
         default: false
       debug:
         type: boolean
-        description: 'Run helm in debug mode'
+        description: "Run helm in debug mode"
         required: false
         default: false
 
@@ -42,15 +51,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v0'
+      - id: "auth"
+        uses: "google-github-actions/auth@v0"
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      - name: 'Set up Cloud SDK'
+      - name: "Set up Cloud SDK"
         uses: google-github-actions/setup-gcloud@v0
 
-      - name: 'Use gcloud CLI'
+      - name: "Use gcloud CLI"
         run: gcloud info
 
       # Configure Docker to use the gcloud command-line tool as a credential
