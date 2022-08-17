@@ -23,6 +23,18 @@ on:
         options:
           - apollo-supergraph-k8s-dev
           - apollo-supergraph-k8s-prod
+      publish:
+        description: "Publish schema to Apollo Studio"
+        type: boolean
+        default: false
+        required: false
+      variant:
+        description: "Apollo Studio variant"
+        type: choice
+        required: false
+        options:
+          - dev
+          - prod
       dry-run:
         type: boolean
         description: "Run a dry run with helm"
@@ -39,6 +51,9 @@ env:
   PROJECT_ID: subgraph-b # Add your app name here
   GKE_ZONE: us-east1 # Add your cluster zone here.
   REGISTRY: ghcr.io
+  APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+  APOLLO_GRAPH_ID: ${{ secrets.APOLLO_GRAPH_ID }}
+  APOLLO_VCS_COMMIT: ${{ github.event.pull_request.head.sha }}
 
 jobs:
   setup-build-publish-deploy:
@@ -117,3 +132,14 @@ jobs:
           --timeout 10m0s \
           ./deploy/subgraph-b \
           --values ./deploy/subgraph-b/values.yaml
+
+      - name: Install Rover
+        if: ${{ inputs.publish }}
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/v0.8.1 | sh
+          echo "$HOME/.rover/bin" >> $GITHUB_PATH
+
+      - name: Publish schema to Apollo Studio
+        if: ${{ !inputs.dry-run && inputs.publish && inputs.variant }}
+        run: |
+          rover subgraph publish $APOLLO_GRAPH_ID@${{ inputs.variant }} --name $PROJECT_ID --routing-url http://$PROJECT_ID --schema ./src/schema.graphql
