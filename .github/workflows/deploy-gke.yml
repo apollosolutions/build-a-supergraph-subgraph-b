@@ -37,7 +37,6 @@ on:
 env:
   IMAGE: ${{ github.repository }}
   PROJECT_ID: subgraph-b # Add your app name here
-  GKE_CLUSTER: apollo-supergraph-k8s-prod # Add your cluster name here.
   GKE_ZONE: us-east1 # Add your cluster zone here.
   REGISTRY: ghcr.io
 
@@ -70,7 +69,7 @@ jobs:
       # Get the GKE credentials so we can deploy to the cluster
       - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
         with:
-          cluster_name: ${{ env.GKE_CLUSTER }}
+          cluster_name: ${{ inputs.cluster }}
           location: ${{ env.GKE_ZONE }}
 
       # Install helm
