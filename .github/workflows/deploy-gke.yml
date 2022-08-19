@@ -142,4 +142,7 @@ jobs:
       - name: Publish schema to Apollo Studio
         if: ${{ !inputs.dry-run && inputs.publish && inputs.variant }}
         run: |
-          rover subgraph publish $APOLLO_GRAPH_ID@${{ inputs.variant }} --name $PROJECT_ID --routing-url http://$PROJECT_ID --schema ./src/schema.graphql
+          rover subgraph publish $APOLLO_GRAPH_ID@${{ inputs.variant }} \
+            --name $PROJECT_ID \
+            --routing-url http://$PROJECT_ID-chart.default.svc.cluster.local:4000 \
+            --schema ./src/schema.graphql
