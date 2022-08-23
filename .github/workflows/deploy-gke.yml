@@ -5,33 +5,37 @@ name: deploy-gke
 
 # REQUIRED REPO SECRETS
 #   - GCP_CREDENTIALS
+#   - CLUSTER_PREFIX
+#   - APOLLO_KEY
+#   - APOLLO_GRAPH_ID
 
 # Run on manual trigger for now
 on:
+  # trigger from docker-build.yaml
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: main
+        required: true
+      environment:
+        type: string
+        required: true
+        default: dev
+
+  # manual trigger
   workflow_dispatch:
     inputs:
       version:
-        description: "SHA of the image to deploy"
+        description: "Git ref to deploy"
         type: string
         required: true
         default: main
-      cluster:
-        description: "Target K8s cluster"
+      environment:
+        description: "Target environment"
         type: choice
         required: true
-        default: apollo-supergraph-k8s-dev
-        options:
-          - apollo-supergraph-k8s-dev
-          - apollo-supergraph-k8s-prod
-      publish:
-        description: "Publish schema to Apollo Studio"
-        type: boolean
-        default: false
-        required: false
-      variant:
-        description: "Apollo Studio variant"
-        type: choice
-        required: false
+        default: dev
         options:
           - dev
           - prod
@@ -84,13 +88,18 @@ jobs:
       # Get the GKE credentials so we can deploy to the cluster
       - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
         with:
-          cluster_name: ${{ inputs.cluster }}
+          cluster_name: ${{ secrets.CLUSTER_PREFIX }}-${{ inputs.environment }}
           location: ${{ env.GKE_ZONE }}
 
       # Install helm
       - name: Install Helm
         run: |
           curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+      - name: Install Rover
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/v0.8.1 | sh
+          echo "$HOME/.rover/bin" >> $GITHUB_PATH
 
       # Deploy the Docker image to the GKE cluster with dry run
       - name: Helm dry-run
@@ -133,16 +142,10 @@ jobs:
           ./deploy/subgraph-b \
           --values ./deploy/subgraph-b/values.yaml
 
-      - name: Install Rover
-        if: ${{ inputs.publish }}
-        run: |
-          curl -sSL https://rover.apollo.dev/nix/v0.8.1 | sh
-          echo "$HOME/.rover/bin" >> $GITHUB_PATH
-
       - name: Publish schema to Apollo Studio
-        if: ${{ !inputs.dry-run && inputs.publish && inputs.variant }}
+        if: ${{ !inputs.dry-run }}
         run: |
-          rover subgraph publish $APOLLO_GRAPH_ID@${{ inputs.variant }} \
+          rover subgraph publish $APOLLO_GRAPH_ID@${{ inputs.environment }} \
             --name $PROJECT_ID \
             --routing-url http://$PROJECT_ID-chart.default.svc.cluster.local:4000 \
             --schema ./src/schema.graphql

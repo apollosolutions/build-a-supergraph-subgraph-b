@@ -2,7 +2,7 @@ name: docker-build
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: ["main"]
 
 env:
   REGISTRY: ghcr.io
@@ -43,3 +43,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs:
+      - build-and-push-image
+    uses: ./.github/workflows/deploy-gke.yaml
+    with:
+      version: main
+      environment: dev
+    secrets: inherit
