@@ -1,0 +1,56 @@
+name: Manual Deploy
+
+# Started from GH Docs
+# https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
+
+# REQUIRED REPO SECRETS
+#   - GCP_CREDENTIALS
+#   - CLUSTER_PREFIX
+#   - APOLLO_KEY
+#   - APOLLO_GRAPH_ID
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Git ref to deploy"
+        type: string
+        required: true
+        default: main
+      environment:
+        description: "Target environment"
+        type: choice
+        required: true
+        default: dev
+        options:
+          - dev
+          - prod
+      dry-run:
+        type: boolean
+        description: "Run a dry run with helm"
+        required: false
+        default: false
+      debug:
+        type: boolean
+        description: "Run helm in debug mode"
+        required: false
+        default: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy-gke.yml
+    secrets: inherit
+    with:
+      version: ${{ inputs.version }}
+      app_name: subgraph-b
+      cluster_suffix: ${{ inputs.environment }}
+      dry-run: ${{ inputs.dry-run }}
+      debug: ${{ inputs.debug }}
+
+  publish:
+    needs: [deploy]
+    uses: ./.github/workflows/_rover-subgraph-publish.yml
+    secrets: inherit
+    with:
+      subgraph_name: subgraph-b
+      variant: ${{ inputs.environment }}

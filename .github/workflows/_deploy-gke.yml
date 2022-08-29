@@ -1,69 +1,48 @@
-name: deploy-gke
+name: _deploy-gke
 
 # Started from GH Docs
 # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
 
-# REQUIRED REPO SECRETS
-#   - GCP_CREDENTIALS
-#   - CLUSTER_PREFIX
-#   - APOLLO_KEY
-#   - APOLLO_GRAPH_ID
-
-# Run on manual trigger for now
 on:
-  # trigger from docker-build.yaml
   workflow_call:
     inputs:
       version:
         type: string
         default: main
         required: true
-      environment:
+      app_name:
+        description: Name of the app in Helm charts
         type: string
         required: true
-        default: dev
-
-  # manual trigger
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Git ref to deploy"
+      cluster_suffix:
+        description: Target GKE cluster suffix
         type: string
         required: true
-        default: main
-      environment:
-        description: "Target environment"
-        type: choice
-        required: true
-        default: dev
-        options:
-          - dev
-          - prod
       dry-run:
         type: boolean
-        description: "Run a dry run with helm"
+        description: Run a dry run with helm
         required: false
         default: false
       debug:
         type: boolean
-        description: "Run helm in debug mode"
+        description: Run helm in debug mode
         required: false
         default: false
+    secrets:
+      GCP_CREDENTIALS:
+        required: true
+      CLUSTER_PREFIX:
+        required: true
 
 env:
   IMAGE: ${{ github.repository }}
-  PROJECT_ID: subgraph-b # Add your app name here
-  GKE_ZONE: us-east1 # Add your cluster zone here.
+  GKE_ZONE: us-east1
   REGISTRY: ghcr.io
-  APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-  APOLLO_GRAPH_ID: ${{ secrets.APOLLO_GRAPH_ID }}
-  APOLLO_VCS_COMMIT: ${{ github.event.pull_request.head.sha }}
 
 jobs:
-  setup-build-publish-deploy:
-    name: Setup, Build, Publish, and Deploy
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - name: Checkout
@@ -88,64 +67,50 @@ jobs:
       # Get the GKE credentials so we can deploy to the cluster
       - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
         with:
-          cluster_name: ${{ secrets.CLUSTER_PREFIX }}-${{ inputs.environment }}
+          cluster_name: ${{ secrets.CLUSTER_PREFIX }}-${{ inputs.cluster_suffix }}
           location: ${{ env.GKE_ZONE }}
 
-      # Install helm
       - name: Install Helm
         run: |
           curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-
-      - name: Install Rover
-        run: |
-          curl -sSL https://rover.apollo.dev/nix/v0.8.1 | sh
-          echo "$HOME/.rover/bin" >> $GITHUB_PATH
 
       # Deploy the Docker image to the GKE cluster with dry run
       - name: Helm dry-run
         if: ${{ inputs.dry-run }}
         run: |
-          helm upgrade $PROJECT_ID \
+          helm upgrade ${{ inputs.app_name }} \
           --set image.repository=$REGISTRY/$IMAGE \
           --set image.tag=${{ inputs.version }} \
           --dry-run \
           --atomic \
           --install \
           --timeout 10m0s \
-          ./deploy/subgraph-b \
-          --values ./deploy/subgraph-b/values.yaml
+          ./deploy/${{ inputs.app_name }} \
+          --values ./deploy/${{ inputs.app_name }}/values.yaml
 
       # Deploy the Docker image to the GKE cluster for real with debug
       - name: Deploy
         if: ${{ !inputs.dry-run && inputs.debug }}
         run: |
-          helm upgrade $PROJECT_ID \
+          helm upgrade ${{ inputs.app_name }} \
           --set image.repository=$REGISTRY/$IMAGE \
           --set image.tag=${{ inputs.version }} \
           --atomic \
           --install \
           --timeout 10m0s \
           --debug \
-          ./deploy/subgraph-b \
-          --values ./deploy/subgraph-b/values.yaml
+          ./deploy/${{ inputs.app_name }} \
+          --values ./deploy/${{ inputs.app_name }}/values.yaml
 
       # Deploy the Docker image to the GKE cluster for real
       - name: Deploy
         if: ${{ !inputs.dry-run }}
         run: |
-          helm upgrade $PROJECT_ID \
+          helm upgrade ${{ inputs.app_name }} \
           --set image.repository=$REGISTRY/$IMAGE \
           --set image.tag=${{ inputs.version }} \
           --atomic \
           --install \
           --timeout 10m0s \
-          ./deploy/subgraph-b \
-          --values ./deploy/subgraph-b/values.yaml
-
-      - name: Publish schema to Apollo Studio
-        if: ${{ !inputs.dry-run }}
-        run: |
-          rover subgraph publish $APOLLO_GRAPH_ID@${{ inputs.environment }} \
-            --name $PROJECT_ID \
-            --routing-url http://$PROJECT_ID-chart.default.svc.cluster.local:4000 \
-            --schema ./src/schema.graphql
+          ./deploy/${{ inputs.app_name }} \
+          --values ./deploy/${{ inputs.app_name }}/values.yaml

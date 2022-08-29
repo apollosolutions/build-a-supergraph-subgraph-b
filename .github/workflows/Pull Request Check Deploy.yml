@@ -1,9 +1,9 @@
-name: pr-check-deploy
+name: Pull Request Check Deploy
 
 on:
   pull_request:
     paths:
-      - 'deploy/**'
+      - "deploy/**"
 
 jobs:
   # See GH Action: https://github.com/helm/chart-testing-action
@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: azure/setup-helm@18bc76811624f360dbd7f18c2d4ecb32c7b87bab # pin@v1
-        with:
-          version: v3.9.2
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
       - name: Helm lint
         id: list-changed
