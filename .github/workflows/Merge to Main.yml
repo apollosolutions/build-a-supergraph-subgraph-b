@@ -52,11 +52,3 @@ jobs:
       version: main
       app_name: subgraph-b
       cluster_suffix: dev
-
-  publish:
-    needs: [deploy]
-    uses: ./.github/workflows/_rover-subgraph-publish.yml
-    secrets: inherit
-    with:
-      subgraph_name: subgraph-b
-      variant: dev

@@ -46,11 +46,3 @@ jobs:
       cluster_suffix: ${{ inputs.environment }}
       dry-run: ${{ inputs.dry-run }}
       debug: ${{ inputs.debug }}
-
-  publish:
-    needs: [deploy]
-    uses: ./.github/workflows/_rover-subgraph-publish.yml
-    secrets: inherit
-    with:
-      subgraph_name: subgraph-b
-      variant: ${{ inputs.environment }}
