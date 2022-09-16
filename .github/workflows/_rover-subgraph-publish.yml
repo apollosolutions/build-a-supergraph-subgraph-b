@@ -39,5 +39,5 @@ jobs:
         run: |
           rover subgraph publish ${{ secrets.APOLLO_GRAPH_ID }}@${{ inputs.variant }} \
             --name ${{ inputs.subgraph_name }} \
-            --routing-url http://${{ inputs.subgraph_name }}-chart.default.svc.cluster.local:4000 \
+            --routing-url http://graphql.${{ inputs.subgraph_name }}.svc.cluster.local:4000 \
             --schema ./src/schema.graphql

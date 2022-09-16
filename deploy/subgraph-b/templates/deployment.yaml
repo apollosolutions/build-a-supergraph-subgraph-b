@@ -37,9 +37,10 @@ spec:
             - name: http
               containerPort: 4000
               protocol: TCP
+          {{- with .Values.env }}
           env:
-            - name: OTEL_HTTP_ENDPOINT
-              value: http://collector.monitoring:4317
+            {{ toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
