@@ -1,0 +1,3 @@
+env:
+  - name: OTEL_HTTP_ENDPOINT
+    value: http://collector.monitoring:4317

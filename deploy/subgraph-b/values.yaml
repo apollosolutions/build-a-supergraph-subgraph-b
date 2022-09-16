@@ -3,10 +3,10 @@ replicaCount: 1
 image:
   repository: ghcr.io/apollosolutions/build-a-supergraph-subgraph-b
   pullPolicy: Always
-  tag: 'main'
+  tag: main
 
-nameOverride: 'subgraph-b-app'
-fullnameOverride: 'subgraph-b-chart'
+nameOverride: graphql
+fullnameOverride: graphql
 
 serviceAccount:
   create: false
@@ -23,7 +23,7 @@ service:
 
 ingress:
   enabled: false
-  className: ''
+  className: ""
   annotations: {}
   hosts:
     - host: subgraph-b.local
