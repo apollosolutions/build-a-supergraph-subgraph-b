@@ -4,7 +4,7 @@ name: Manual Deploy
 # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
 
 # REQUIRED REPO SECRETS
-#   - GCP_CREDENTIALS
+#   - GCP_CREDENTIALS or AWS_ACCESS_KEY/SECRET
 #   - CLUSTER_PREFIX
 #   - APOLLO_KEY
 #   - APOLLO_GRAPH_ID
@@ -37,7 +37,11 @@ on:
         default: false
 
 jobs:
-  deploy:
+  determine_cloud_provider:
+    uses: ./.github/workflows/_determine-provider.yml
+    secrets: inherit
+
+  deploy_gcp:
     uses: ./.github/workflows/_deploy-gke.yml
     secrets: inherit
     with:
@@ -46,3 +50,27 @@ jobs:
       cluster_suffix: ${{ inputs.environment }}
       dry-run: ${{ inputs.dry-run }}
       debug: ${{ inputs.debug }}
+
+  deploy_aws:
+    env:
+      AWS: ${{ secrets.AWS_ACCESS_KEY }}
+    if: "${{ env.AWS != '' }}"
+    uses: ./.github/workflows/_deploy-aws.yml
+    secrets: inherit
+    with:
+      version: ${{ inputs.version }}
+      app_name: subgraph-b
+      cluster_suffix: ${{ inputs.environment }}
+      dry-run: ${{ inputs.dry-run }}
+      debug: ${{ inputs.debug }}
+
+  publish:
+    needs: [deploy_aws, deploy_gcp]
+    if: always() &&
+      (needs.deploy_aws.result == 'success' || needs.deploy_aws.result == 'skipped') &&
+      (needs.deploy_gcp.result == 'success' || needs.deploy_gcp.result == 'skipped')
+    uses: ./.github/workflows/_rover-subgraph-publish.yml
+    secrets: inherit
+    with:
+      subgraph_name: subgraph-b
+      variant: dev
