@@ -42,6 +42,8 @@ jobs:
     secrets: inherit
 
   deploy_gcp:
+    if: needs.determine_cloud_provider.outputs.gcp == 'true'
+    needs: [determine_cloud_provider]
     uses: ./.github/workflows/_deploy-gke.yml
     secrets: inherit
     with:
@@ -52,9 +54,8 @@ jobs:
       debug: ${{ inputs.debug }}
 
   deploy_aws:
-    env:
-      AWS: ${{ secrets.AWS_ACCESS_KEY }}
-    if: "${{ env.AWS != '' }}"
+    if: needs.determine_cloud_provider.outputs.aws == 'true'
+    needs: [determine_cloud_provider]
     uses: ./.github/workflows/_deploy-aws.yml
     secrets: inherit
     with:
@@ -73,4 +74,4 @@ jobs:
     secrets: inherit
     with:
       subgraph_name: subgraph-b
-      variant: dev
+      variant: ${{ inputs.environment }}
