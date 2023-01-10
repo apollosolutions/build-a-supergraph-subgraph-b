@@ -68,14 +68,3 @@ jobs:
       app_name: subgraph-b
       cluster_suffix: dev
       region: us-east-1
-
-  publish:
-    needs: [deploy_aws, deploy_gcp]
-    if: always() &&
-      (needs.deploy_aws.result == 'success' || needs.deploy_aws.result == 'skipped') &&
-      (needs.deploy_gcp.result == 'success' || needs.deploy_gcp.result == 'skipped')
-    uses: ./.github/workflows/_rover-subgraph-publish.yml
-    secrets: inherit
-    with:
-      subgraph_name: subgraph-b
-      variant: dev
