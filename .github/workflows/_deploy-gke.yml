@@ -70,10 +70,6 @@ jobs:
           cluster_name: ${{ secrets.CLUSTER_PREFIX }}-${{ inputs.cluster_suffix }}
           location: ${{ env.GKE_ZONE }}
 
-      - name: Install Helm
-        run: |
-          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-
       # Deploy the Docker image to the GKE cluster with dry run
       - name: Helm dry-run
         if: ${{ inputs.dry-run }}
