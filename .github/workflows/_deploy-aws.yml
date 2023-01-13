@@ -57,43 +57,55 @@ jobs:
       - name: "Configure Kubeconfig w/ EKS"
         run: aws eks update-kubeconfig --name ${{ secrets.CLUSTER_PREFIX }}-${{ inputs.cluster_suffix }} --region ${{ env.AWS_REGION }}
 
-      # Deploy the Docker image to the AWS cluster with dry run
+      # Deploy the Docker image to the GKE cluster with dry run
       - name: Helm dry-run
         if: ${{ inputs.dry-run }}
         run: |
+          repository=$(echo "$REGISTRY/$IMAGE" | tr '[:upper:]' '[:lower:]')
+
           helm upgrade ${{ inputs.app_name }} \
-          --set image.repository=$REGISTRY/$IMAGE \
+          --create-namespace \
+          --namespace ${{ inputs.app_name }} \
+          --set image.repository=$repository \
           --set image.tag=${{ inputs.version }} \
           --dry-run \
           --atomic \
           --install \
-          --timeout 10m0s \
           ./deploy/${{ inputs.app_name }} \
-          --values ./deploy/${{ inputs.app_name }}/values.yaml
+          --values ./deploy/${{ inputs.app_name }}/values.yaml \
+          -f ./deploy/${{ inputs.app_name }}/environments/${{ inputs.cluster_suffix }}.yaml
 
-      # Deploy the Docker image to the AWS cluster for real with debug
+      # Deploy the Docker image to the GKE cluster for real with debug
       - name: Deploy
         if: ${{ !inputs.dry-run && inputs.debug }}
         run: |
+          repository=$(echo "$REGISTRY/$IMAGE" | tr '[:upper:]' '[:lower:]')
+
           helm upgrade ${{ inputs.app_name }} \
-          --set image.repository=$REGISTRY/$IMAGE \
+          --create-namespace \
+          --namespace ${{ inputs.app_name }} \
+          --set image.repository=$repository \
           --set image.tag=${{ inputs.version }} \
           --atomic \
           --install \
-          --timeout 10m0s \
           --debug \
           ./deploy/${{ inputs.app_name }} \
-          --values ./deploy/${{ inputs.app_name }}/values.yaml
+          --values ./deploy/${{ inputs.app_name }}/values.yaml \
+          -f ./deploy/${{ inputs.app_name }}/environments/${{ inputs.cluster_suffix }}.yaml
 
-      # Deploy the Docker image to the AWS cluster for real
+      # Deploy the Docker image to the GKE cluster for real
       - name: Deploy
         if: ${{ !inputs.dry-run }}
         run: |
+          repository=$(echo "$REGISTRY/$IMAGE" | tr '[:upper:]' '[:lower:]')
+
           helm upgrade ${{ inputs.app_name }} \
-          --set image.repository=$REGISTRY/$IMAGE \
+          --create-namespace \
+          --namespace ${{ inputs.app_name }} \
+          --set image.repository=$repository \
           --set image.tag=${{ inputs.version }} \
           --atomic \
           --install \
-          --timeout 10m0s \
           ./deploy/${{ inputs.app_name }} \
-          --values ./deploy/${{ inputs.app_name }}/values.yaml
+          --values ./deploy/${{ inputs.app_name }}/values.yaml \
+          -f ./deploy/${{ inputs.app_name }}/environments/${{ inputs.cluster_suffix }}.yaml
