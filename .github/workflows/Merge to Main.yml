@@ -8,8 +8,11 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
 jobs:
+  determine_cloud_provider:
+    uses: ./.github/workflows/_determine-provider.yml
+    secrets: inherit
+
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
@@ -38,18 +41,30 @@ jobs:
             type=sha,format=long
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v3.1.1
+        uses: docker/build-push-action@v3
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  deploy:
-    needs: [build-and-push-image]
+  deploy_gcp:
+    if: needs.determine_cloud_provider.outputs.gcp == 'true'
+    needs: [determine_cloud_provider, build-and-push-image]
     uses: ./.github/workflows/_deploy-gke.yml
     secrets: inherit
     with:
       version: main
       app_name: subgraph-b
       cluster_suffix: dev
+
+  deploy_aws:
+    if: needs.determine_cloud_provider.outputs.aws == 'true'
+    needs: [determine_cloud_provider, build-and-push-image]
+    uses: ./.github/workflows/_deploy-aws.yml
+    secrets: inherit
+    with:
+      version: main
+      app_name: subgraph-b
+      cluster_suffix: dev
+      region: us-east-1
