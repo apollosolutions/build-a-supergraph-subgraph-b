@@ -1,14 +1,14 @@
 extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.0",
-        import: ["@key"])
+  @link(url: "https://specs.apollo.dev/federation/v2.5",
+        import: ["@key", "@requiresScopes"])
         
 type Query {
   "The three latest reviews submitted for FlyBy's locations"
-  latestReviews: [Review!]!
+  latestReviews: [Review!]! @requiresScopes(scopes: [["read:review"]])
 }
 
 type Mutation {
-  submitReview(locationReview: LocationReviewInput): SubmitReviewResponse
+  submitReview(locationReview: LocationReviewInput): SubmitReviewResponse @requiresScopes(scopes: [["write:review"]])
 }
 
 type Location @key(fields: "id") {
@@ -16,7 +16,7 @@ type Location @key(fields: "id") {
   "The calculated overall rating based on all reviews"
   overallRating: Float
   "All submitted reviews about this location"
-  reviewsForLocation: [Review]!
+  reviewsForLocation: [Review]! @requiresScopes(scopes: [["read:review"]])
 }
 
 type Review {
@@ -26,7 +26,7 @@ type Review {
   "A number from 1 - 5 with 1 being lowest and 5 being highest"
   rating: Int
   "The location the review is about"
-  location: Location
+  location: Location @requiresScopes(scopes: [["read:location"]])
 }
 
 input LocationReviewInput {
